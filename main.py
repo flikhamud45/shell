@@ -1,11 +1,14 @@
 import abc
 from typing import List, Optional, Tuple
 import time
+import os
 
 EXIT = "exit"
 
+
 class Command(abc.ABC):
     """To add new command, implemant this class"""
+
     name: str
     doc: str
     usage: str
@@ -13,7 +16,7 @@ class Command(abc.ABC):
     @staticmethod
     def run(*args) -> None:
         pass
-    
+
 
 class Echo(Command):
     name: str = "echo"
@@ -23,7 +26,7 @@ class Echo(Command):
     @staticmethod
     def run(*args) -> None:
         print(" ".join(args))
-    
+
 
 class Man(Command):
     name: str = "man"
@@ -37,6 +40,7 @@ class Man(Command):
             print(f"No manual entry for '{command_name}'")
             return
         print(f"{command.name}: {command.doc}")
+
 
 class Upper(Command):
     name: str = "upper"
@@ -57,6 +61,7 @@ class Lower(Command):
     def run(*args: str) -> None:
         print(" ".join(arg.lower() for arg in args))
 
+
 class Rev(Command):
     name: str = "rev"
     doc: str = "Reverse the order of the arguments passed to the command."
@@ -66,6 +71,7 @@ class Rev(Command):
     def run(*args: str) -> None:
         print(" ".join(reversed(args)))
 
+
 class Len(Command):
     name: str = "len"
     doc: str = "Display the length of each argument."
@@ -74,6 +80,7 @@ class Len(Command):
     @staticmethod
     def run(*args: str) -> None:
         print(" ".join(str(len(arg)) for arg in args))
+
 
 class Uniq(Command):
     name: str = "uniq"
@@ -89,6 +96,7 @@ class Uniq(Command):
                 args_seen.add(arg)
         print()
 
+
 class count(Command):
     name: str = "count"
     doc: str = "Count the number of arguments."
@@ -97,6 +105,7 @@ class count(Command):
     @staticmethod
     def run(*args: str) -> None:
         print(len(args))
+
 
 class sort(Command):
     name: str = "sort"
@@ -107,6 +116,7 @@ class sort(Command):
     def run(*args: str) -> None:
         print(" ".join(sorted(args)))
 
+
 class Reverse(Command):
     name: str = "reverse"
     doc: str = "Reverse the order of the arguments."
@@ -115,6 +125,7 @@ class Reverse(Command):
     @staticmethod
     def run(*args: str) -> None:
         print(" ".join(reversed(args)))
+
 
 class sleep(Command):
     name: str = "sleep"
@@ -129,9 +140,7 @@ class sleep(Command):
             print("Invalid number of seconds.")
 
 
-
 COMMANDS = {c.name: c for c in Command.__subclasses__()}
-
 
 
 def parse_command(line: str) -> Tuple[str, List[str]]:
@@ -151,7 +160,7 @@ def run_shell() -> None:
             if command_name == EXIT:
                 break
             command = COMMANDS.get(command_name)
-            
+
             if command is None:
                 print(f"Unknown command: {command_name}")
                 continue
@@ -167,12 +176,12 @@ def run_shell() -> None:
                 print(f"Usage: {command.name} {command.usage}")
     except KeyboardInterrupt:
         pass
-    print("Exiting shell.")        
-
+    print("Exiting shell.")
 
 
 def main() -> None:
     run_shell()
+
 
 if __name__ == "__main__":
     main()
