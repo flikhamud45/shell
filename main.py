@@ -1,7 +1,9 @@
 import abc
-from typing import Callable, List, Optional, Tuple
+from functools import wraps
+from typing import Callable, List, Optional, Set, Tuple
 import time
 import os
+import inspect
 
 EXIT = "exit"
 commands_hostory: List[str] = []
@@ -100,7 +102,7 @@ class Uniq(Command):
 
     @staticmethod
     def run(*args: str) -> None:
-        args_seen = set()
+        args_seen: Set[str] = set()
         for arg in args:
             if arg not in args_seen:
                 print(arg, end=" ")
@@ -165,6 +167,7 @@ def check_path_exist(pos: int = 0, name: str = "path") -> Callable:
     """Decorator factory to check if a file or directory exists before running the command."""
 
     def decorator(func: Callable) -> Callable:
+        @wraps(func)
         def wrapper(*args, **kwargs):
             path = args[pos] if args else kwargs[name]
             if not os.path.exists(path):
@@ -181,6 +184,7 @@ def check_is_directory(pos: int = 0, name: str = "path") -> Callable:
     """Decorator factory to check if a path is a directory before running the command."""
 
     def decorator(func: Callable) -> Callable:
+        @wraps(func)
         def wrapper(*args, **kwargs):
             path = args[pos] if args else kwargs[name]
             if not os.path.isdir(path):
@@ -197,6 +201,7 @@ def check_is_file(pos: int = 0, name: str = "path") -> Callable:
     """Decorator factory to check if a path is a file before running the command."""
 
     def decorator(func: Callable) -> Callable:
+        @wraps(func)
         def wrapper(*args, **kwargs):
             path = args[pos] if args else kwargs[name]
             if not os.path.isfile(path):
@@ -221,12 +226,34 @@ class cd(Command):
         os.chdir(path)
 
 
+def resolve_defualt(name: str = "path", pos: int = 0) -> Callable:
+    """Decorator factory to resolve default values"""
+
+    def decorator(func: Callable) -> Callable:
+
+        # resolve default using inspect
+        signature = inspect.signature(func)
+        print(signature.parameters)
+        default_value = signature.parameters[name].default
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if name not in kwargs and len(args) <= pos:
+                kwargs[name] = default_value
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 class ls(Command):
     name: str = "ls"
     doc: str = "List files in the current directory."
     usage: str = "[directory]"
 
     @staticmethod
+    @resolve_defualt(name="path", pos=0)
     @check_path_exist()
     @check_is_directory()
     def run(path: str = ".") -> None:
@@ -306,9 +333,10 @@ class cat(Command):
             if not os.path.isfile(file_name):
                 print(f"{file_name} is not a file.")
                 continue
+            print(f"{file_name}:")
             try:
                 with open(file_name, "r") as f:
-                    print(f.read())
+                    print(f.read(), end="")
             except PermissionError:
                 print(f"Permission denied: {file_name}")
 
@@ -398,6 +426,8 @@ def remove_quates(func: Callable) -> Callable:
             print("Unmatched quotes in arguments.")
             return
         return func(*new_args)
+
+    return wrapper
 
 
 class grep(Command):
@@ -510,7 +540,10 @@ def parse_command(line: str) -> Tuple[str, List[str]]:
     if any(part.startswith("$") for part in parts):
         for i in range(len(parts)):
             if parts[i].startswith("$"):
-                parts[i] = env_variables.get(parts[i][1:], "")
+                last_dolar = parts[i].rfind("$")
+                parts[i] = parts[i][:last_dolar] + env_variables.get(
+                    parts[i][last_dolar + 1 :], ""
+                )
         return parse_command(" ".join(parts))
 
     command_name = parts[0]
