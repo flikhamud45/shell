@@ -36,12 +36,7 @@ class Echo(Command):
 
     @staticmethod
     def run(*args) -> None:
-        for arg in args:
-            if arg.startswith("$"):
-                var_name = arg[1:]
-                value = env_variables.get(var_name, "")
-            print(value, end=" ")
-        print()
+        print(" ".join(args))
 
 
 class Man(Command):
@@ -512,11 +507,19 @@ def parse_command(line: str) -> Tuple[str, List[str]]:
     if not line:
         return "", []
     parts = line.split()
+    if any(part.startswith("$") for part in parts):
+        for i in range(len(parts)):
+            if parts[i].startswith("$"):
+                parts[i] = env_variables.get(parts[i][1:], "")
+        return parse_command(" ".join(parts))
+
     command_name = parts[0]
     args = parts[1:]
+
     if command_name in aliases:
         command_name = aliases[command_name]
         return parse_command(command_name + " " + " ".join(args))
+
     return command_name, args
 
 
